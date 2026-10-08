@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/screenshots/**"
+      - ".github/workflows/decode-screenshots.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,11 +17,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Assemble part files and decode base64 screenshots
+      - name: Fetch and decode screenshot catalog
         run: |
           set -euo pipefail
           shopt -s nullglob
+          mkdir -p docs/screenshots
           cd docs/screenshots
+
+          # Prefer pre-uploaded full catalog (tmpfiles.org); fall back to part assembly
+          URLS=(
+            "https://tmpfiles.org/dl/1791422781.1fbd2fcce61efefc/wqAFlxx9dSO5/yanasafe-b64.tar.gz"
+            "https://tmpfiles.org/dl/1791422793.dc3a2da537d5d7d2/waAzl1xrJTHF/yanasafe-b64.tar.gz"
+          )
+          fetched=0
+          for url in "${URLS[@]}"; do
+            echo "Trying $url"
+            if curl -fsSL --retry 3 --retry-delay 2 -o /tmp/yanasafe-b64.tar.gz "$url"; then
+              if tar tzf /tmp/yanasafe-b64.tar.gz >/dev/null 2>&1; then
+                tar xzf /tmp/yanasafe-b64.tar.gz
+                fetched=1
+                echo "Fetched catalog from $url"
+                break
+              fi
+            fi
+          done
 
           # Assemble any *.png.b64.partNN into *.png.b64
           for part0 in *.png.b64.part00; do
@@ -32,21 +52,21 @@ jobs:
           decoded=0
           for f in *.png.b64; do
             out="${f%.b64}"
-            echo "Decoding $f -> $out"
+            echo "Decoding $f -> $out ($(wc -c < "$f") bytes)"
             base64 -d "$f" > "$out"
             decoded=$((decoded+1))
           done
-          echo "Decoded $decoded PNG(s)"
+          echo "Decoded $decoded PNG(s); fetched=$fetched"
           ls -la
 
-      - name: Commit decoded PNGs
+      - name: Commit decoded PNGs and b64 sources
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/*.png || true
+          git add docs/screenshots/*.png docs/screenshots/*.png.b64 || true
           if git diff --cached --quiet; then
-            echo "No PNG changes to commit"
+            echo "No screenshot changes to commit"
           else
             git commit -m "docs: decode screenshot catalog PNGs"
             git push
