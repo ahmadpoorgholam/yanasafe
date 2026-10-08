@@ -1,0 +1,25 @@
+name: Assemble package-lock
+on:
+  push:
+    paths:
+      - "_lock_parts/**"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Concatenate lock parts into package-lock.json
+        run: |
+          set -euo pipefail
+          test -d _lock_parts
+          cat $(ls _lock_parts/*.txt | sort) > package-lock.json
+          python3 -c "import json; json.load(open('package-lock.json')); print('ok', __import__('os').path.getsize('package-lock.json'))"
+          rm -rf _lock_parts
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: assemble package-lock.json from parts"
+          git push
