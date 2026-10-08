@@ -2,9 +2,9 @@ name: Decode screenshot catalog
 
 on:
   push:
+    branches: [main]
     paths:
-      - 'docs/screenshots/*.b64'
-      - '.github/workflows/decode-screenshots.yml'
+      - "docs/screenshots/**"
   workflow_dispatch:
 
 permissions:
@@ -15,17 +15,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode base64 screenshots to PNG
+
+      - name: Assemble part files and decode base64 screenshots
         run: |
           set -euo pipefail
           shopt -s nullglob
-          for f in docs/screenshots/*.png.b64; do
-            out="${f%.b64}"
-            base64 -d "$f" > "$out"
-            echo "decoded $out ($(wc -c < "$out") bytes)"
+          cd docs/screenshots
+
+          # Assemble any *.png.b64.partNN into *.png.b64
+          for part0 in *.png.b64.part00; do
+            base="${part0%.part00}"
+            echo "Assembling $base from parts"
+            cat "$base".part* > "$base"
           done
-      - name: Commit PNGs
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "docs: decode screenshot catalog PNGs"
-          file_pattern: docs/screenshots/*.png
+
+          decoded=0
+          for f in *.png.b64; do
+            out="${f%.b64}"
+            echo "Decoding $f -> $out"
+            base64 -d "$f" > "$out"
+            decoded=$((decoded+1))
+          done
+          echo "Decoded $decoded PNG(s)"
+          ls -la
+
+      - name: Commit decoded PNGs
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/*.png || true
+          if git diff --cached --quiet; then
+            echo "No PNG changes to commit"
+          else
+            git commit -m "docs: decode screenshot catalog PNGs"
+            git push
+          fi
