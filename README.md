@@ -8,6 +8,21 @@ Romance scams and unsafe dates affect people of every gender. Women-only apps su
 
 > This is a **proof of concept**, not a production-ready product. Analysis defaults to mock data. Treat community content as unverified opinions, never as legal advice or a substitute for your judgment or emergency services.
 
+**Public repository:** https://github.com/ahmadpoorgholam/yanasafe
+
+## Screenshot catalog
+
+Captured from a local headless Chromium run of the POC UI.
+
+| Screen | Preview |
+|--------|---------|
+| Home | ![Home](docs/screenshots/01-home.png) |
+| Profile analysis | ![Analyze](docs/screenshots/02-analyze.png) |
+| Community safety reports | ![Reports](docs/screenshots/03-reports.png) |
+| About | ![About](docs/screenshots/04-about.png) |
+| Help & guidelines | ![Help](docs/screenshots/05-help.png) |
+| Our story | ![Our story](docs/screenshots/06-our-story.png) |
+
 ## Why this exists
 
 - **Automation** — profile image + context analysis that returns a safety score, flags, and suggestions
@@ -18,7 +33,7 @@ Romance scams and unsafe dates affect people of every gender. Women-only apps su
 ## What works today vs roadmap
 
 | Area | Today (POC) | Roadmap |
-|------|-------------|----------------|
+|------|-------------|---------|
 | Profile analysis UI | Working | Richer signals / social verification |
 | AI backend | **Mock by default** (`USE_MOCK_DATA`); optional Perplexity path | Hardened live models |
 | Community reports | Submit to Firestore; browse uses demo/mock lists | Live moderated feeds |
