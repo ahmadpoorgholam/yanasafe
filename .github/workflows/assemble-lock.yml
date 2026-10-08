@@ -1,9 +1,10 @@
 name: Assemble package-lock
 on:
+  workflow_dispatch:
   push:
     paths:
-      - "_lock_parts/**"
-  workflow_dispatch:
+      - ".github/workflows/assemble-lock.yml"
+      - "package.json"
 permissions:
   contents: write
 jobs:
@@ -11,15 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Concatenate lock parts into package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Generate package-lock.json
         run: |
           set -euo pipefail
-          test -d _lock_parts
-          cat $(ls _lock_parts/*.txt | sort) > package-lock.json
-          python3 -c "import json; json.load(open('package-lock.json')); print('ok', __import__('os').path.getsize('package-lock.json'))"
-          rm -rf _lock_parts
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json already present"
+            exit 0
+          fi
+          npm install --package-lock-only --ignore-scripts
+          test -f package-lock.json
+          python3 -c "import json,os; d=json.load(open('package-lock.json')); print('packages', len(d.get('packages',{})), 'size', os.path.getsize('package-lock.json'))"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: assemble package-lock.json from parts"
+          git add package-lock.json
+          git commit -m "chore: sync YanaSafe source batch 6"
           git push
